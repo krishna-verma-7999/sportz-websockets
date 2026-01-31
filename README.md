@@ -1,90 +1,178 @@
 # Live Commentary Server
 
-Real-time sports commentary application backend with Express.js and Neon PostgreSQL.
+Real-time sports commentary backend built with Express.js, WebSockets, and Neon PostgreSQL.
 
-## Database Setup
+## Tech Stack
 
-This project uses **Drizzle ORM** with **Neon PostgreSQL**.
-
-### Current Schema
-
-**Tables:**
-- `matches` - Sports match information
-- `commentary` - Real-time commentary events
-- `drizzle_migrations` - Migration tracking (auto-created)
-
-**Enums:**
-- `match_status` - 'scheduled', 'live', 'finished'
-
-### Available Commands
-
-```bash
-# Run migrations
-npm run db:migrate
-
-# Start development server
-npm run dev
-
-# Start production server
-npm start
-```
-
-## Migration System
-
-Migrations are managed manually with SQL files:
-
-1. **Create migration file** in `drizzle/` directory:
-   ```text
-   drizzle/0001_add_teams_table.sql
-   ```
-
-2. **Write SQL migration**:
-   ```sql
-   CREATE TABLE "teams" (
-     "id" SERIAL PRIMARY KEY,
-     "name" TEXT NOT NULL
-   );
-   ```
-
-3. **Run migrations**:
-   ```bash
-   npm run db:migrate
-   ```
-
-The migration system automatically:
-- Tracks applied migrations
-- Skips already-applied migrations
-- Shows migration history
-- Uses transactions for safety
+- **Runtime:** Node.js (ES modules)
+- **Framework:** Express.js 5
+- **WebSockets:** ws
+- **ORM:** Drizzle ORM
+- **Database:** PostgreSQL (Neon)
+- **Validation:** Zod
 
 ## Project Structure
 
 ```text
-server/
-├── drizzle/                 # Migration files (.sql)
+sportz-websockets/
+├── drizzle/                    # SQL migration files
 ├── src/
 │   ├── db/
-│   │   ├── db.js           # Database client
-│   │   └── schema.js       # Drizzle ORM schema
-│   ├── migrate.js          # Migration runner
-│   └── index.js            # Express server
-├── .env                    # Database credentials
+│   │   ├── db.js               # Database client (pg + Drizzle)
+│   │   └── schema.js           # Table & relation definitions
+│   ├── routes/
+│   │   └── match.js            # Match CRUD endpoints
+│   ├── validation/
+│   │   └── matches.js          # Zod schemas for request validation
+│   ├── utils/
+│   │   └── matchStatus.js      # Match status derivation logic
+│   ├── ws/
+│   │   └── server.js           # WebSocket server setup
+│   └── index.js                # App entrypoint
+├── .env                        # Environment variables
+├── drizzle.config.js           # Drizzle Kit config
 └── package.json
+```
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- PostgreSQL database (Neon or local)
+
+### Setup
+
+```bash
+# Install dependencies
+npm install
+
+# Configure environment variables
+cp .env.example .env
+# Edit .env with your DATABASE_URL
+
+# Run database migrations
+npm run db:migrate
+
+# Start development server (with hot reload)
+npm run dev
 ```
 
 ## Environment Variables
 
-```env
-DATABASE_URL="postgresql://user:pass@host/db?sslmode=require"
+| Variable       | Description                  | Default     |
+|----------------|------------------------------|-------------|
+| `DATABASE_URL` | PostgreSQL connection string | (required)  |
+| `PORT`         | HTTP server port             | `8000`      |
+| `HOST`         | Server bind address          | `0.0.0.0`   |
+
+## API Endpoints
+
+All routes are prefixed with `/api`.
+
+| Method | Endpoint      | Description         |
+|--------|---------------|---------------------|
+| GET    | `/api/`       | Welcome / health    |
+| GET    | `/api/match`  | List matches        |
+| POST   | `/api/match`  | Create a new match  |
+
+### GET /api/match
+
+Query parameters:
+
+| Param   | Type   | Description              | Default |
+|---------|--------|--------------------------|---------|
+| `limit` | number | Max results (1-100)      | `10`    |
+
+### POST /api/match
+
+Request body:
+
+```json
+{
+  "sport": "cricket",
+  "homeTeam": "India",
+  "awayTeam": "Australia",
+  "startTime": "2026-02-01T10:00:00Z",
+  "endTime": "2026-02-01T18:00:00Z",
+  "homeScore": 0,
+  "awayScore": 0
+}
 ```
 
-## Dependencies
+| Field       | Type   | Required | Notes                          |
+|-------------|--------|----------|--------------------------------|
+| `sport`     | string | yes      | Non-empty                      |
+| `homeTeam`  | string | yes      | Non-empty                      |
+| `awayTeam`  | string | yes      | Non-empty                      |
+| `startTime` | string | yes      | Valid ISO 8601 date            |
+| `endTime`   | string | yes      | Must be after `startTime`      |
+| `homeScore` | number | no       | Non-negative integer, default 0|
+| `awayScore` | number | no       | Non-negative integer, default 0|
 
-**Runtime:**
-- express - Web framework
-- drizzle-orm - Type-safe ORM
-- pg - PostgreSQL driver
-- dotenv - Environment variables
+## WebSocket
 
-**Development:**
-- drizzle-kit - Migration tools (optional)
+Connect to `ws://localhost:8000/ws`.
+
+### Messages from server
+
+**On connect:**
+```json
+{ "type": "welcome", "message": "Welcome to the WebSocket server!" }
+```
+
+**On match created:**
+```json
+{ "type": "matchCreated", "match": { "id": 1, "sport": "cricket", ... } }
+```
+
+### Heartbeat (Ping/Pong)
+
+The server sends a WebSocket ping frame to every connected client every 30 seconds. If a client does not respond with a pong before the next ping cycle, the server terminates the connection. This ensures dead/ghost connections are cleaned up automatically.
+
+- Browsers handle pong responses automatically — no client-side code is needed.
+- If you need the **client** to detect a dead server, implement an application-level heartbeat since the browser `WebSocket` API does not support sending ping frames.
+
+## Database Schema
+
+### matches
+
+| Column      | Type           | Notes                              |
+|-------------|----------------|------------------------------------|
+| `id`        | serial (PK)    | Auto-increment                     |
+| `sport`     | text           | Not null                           |
+| `home_team` | text           | Not null                           |
+| `away_team` | text           | Not null                           |
+| `status`    | match_status   | `scheduled`, `live`, `finished`    |
+| `start_time`| timestamp      | Not null                           |
+| `end_time`  | timestamp      |                                    |
+| `home_score`| integer        | Default 0                          |
+| `away_score`| integer        | Default 0                          |
+| `created_at`| timestamp      | Auto-set                           |
+
+### commentary
+
+| Column      | Type           | Notes                              |
+|-------------|----------------|------------------------------------|
+| `id`        | serial (PK)    | Auto-increment                     |
+| `match_id`  | integer (FK)   | References matches, cascade delete |
+| `minute`    | integer        |                                    |
+| `sequence`  | integer        | Not null                           |
+| `period`    | text           |                                    |
+| `event_type`| text           | Not null                           |
+| `actor`     | text           |                                    |
+| `team`      | text           |                                    |
+| `message`   | text           | Not null                           |
+| `metadata`  | jsonb          |                                    |
+| `tags`      | text[]         |                                    |
+| `created_at`| timestamp      | Auto-set                           |
+
+## NPM Scripts
+
+| Script          | Command                      | Description                  |
+|-----------------|------------------------------|------------------------------|
+| `npm start`     | `node src/index.js`          | Start production server      |
+| `npm run dev`   | `node --watch src/index.js`  | Start with hot reload        |
+| `npm run db:generate` | `drizzle-kit generate`       | Generate migration files     |
+| `npm run db:migrate`  | `drizzle-kit migrate`        | Run pending migrations       |
+| `npm run db:studio`   | `drizzle-kit studio`         | Open Drizzle Studio UI       |

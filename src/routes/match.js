@@ -43,6 +43,14 @@ router.post("/", async (req,res)=>{
            awayScore: awayScore ?? 0,
            status: getMatchStatus(new Date(startTime), new Date(endTime))
         }).returning();
+
+        if(res.app.locals.broadcastMatchCreated){
+            try {
+                res.app.locals.broadcastMatchCreated(event);
+            } catch (err) {
+                console.error("Failed to broadcast match created event:", err);
+            }
+        }
         
         res.status(201).json({data: event});
     } catch (error) {
