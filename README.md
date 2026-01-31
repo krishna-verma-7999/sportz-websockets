@@ -166,6 +166,6 @@ Connect to `ws://localhost:8000/ws`.
 |-----------------|------------------------------|------------------------------|
 | `npm start`     | `node src/index.js`          | Start production server      |
 | `npm run dev`   | `node --watch src/index.js`  | Start with hot reload        |
-| `npm run db:generate` | `drizzle-kit generate`  | Generate migration files     |
-| `npm run db:migrate`  | `drizzle-kit migrate`   | Run pending migrations       |
-| `npm run db:studio`   | `drizzle-kit studio`    | Open Drizzle Studio UI       |
+| `npm run db:generate` | `drizzle-kit generate`       | Generate migration files     |
+| `npm run db:migrate`  | `drizzle-kit migrate`        | Run pending migrations       |
+| `npm run db:studio`   | `drizzle-kit studio`         | Open Drizzle Studio UI       |
