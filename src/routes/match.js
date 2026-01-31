@@ -43,6 +43,10 @@ router.post("/", async (req,res)=>{
            awayScore: awayScore ?? 0,
            status: getMatchStatus(new Date(startTime), new Date(endTime))
         }).returning();
+
+        if(res.app.locals.broadcastMatchCreated){
+            res.app.locals.broadcastMatchCreated(event);
+        }
         
         res.status(201).json({data: event});
     } catch (error) {
