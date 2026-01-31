@@ -19,7 +19,8 @@ router.get("/", async (req,res)=>{
         const data = await db.select().from(matches).limit(limit).orderBy((desc(matches.startTime)));
         return res.json({data});
     } catch (error) {
-        return res.status(500).json({error: "Failed to fetch matches", details: JSON.stringify(error)});  
+        console.error("Failed to fetch matches:", error);
+        return res.status(500).json({error: "Failed to fetch matches"});
     }
 })
 
@@ -45,6 +46,7 @@ router.post("/", async (req,res)=>{
         
         res.status(201).json({data: event});
     } catch (error) {
-        return res.status(500).json({error: "Failed to create match", details: JSON.stringify(error)});  
+        console.error("Failed to create match:", error);
+        return res.status(500).json({error: "Failed to create match"});
     }
 })
