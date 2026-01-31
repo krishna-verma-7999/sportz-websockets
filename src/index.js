@@ -1,5 +1,6 @@
 import 'dotenv/config';
-import express from 'express';
+import express, {Router} from 'express';
+import { router as matchRouter } from './routes/match.js';
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -8,9 +9,14 @@ const PORT = process.env.PORT || 8000;
 app.use(express.json());
 
 // Routes
-app.get('/', (req, res) => {
+const api = Router();
+app.use('/api', api);
+
+api.get('/', (req, res) => {
   res.json({ message: 'Welcome to Live Commentary Server' });
 });
+
+api.use('/match', matchRouter);
 
 // Start server
 app.listen(PORT, () => {
