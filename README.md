@@ -126,6 +126,13 @@ Connect to `ws://localhost:8000/ws`.
 { "type": "matchCreated", "match": { "id": 1, "sport": "cricket", ... } }
 ```
 
+### Heartbeat (Ping/Pong)
+
+The server sends a WebSocket ping frame to every connected client every 30 seconds. If a client does not respond with a pong before the next ping cycle, the server terminates the connection. This ensures dead/ghost connections are cleaned up automatically.
+
+- Browsers handle pong responses automatically — no client-side code is needed.
+- If you need the **client** to detect a dead server, implement an application-level heartbeat since the browser `WebSocket` API does not support sending ping frames.
+
 ## Database Schema
 
 ### matches
