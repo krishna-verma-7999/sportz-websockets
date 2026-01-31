@@ -34,7 +34,7 @@ npm start
 Migrations are managed manually with SQL files:
 
 1. **Create migration file** in `drizzle/` directory:
-   ```
+   ```text
    drizzle/0001_add_teams_table.sql
    ```
 
@@ -59,7 +59,7 @@ The migration system automatically:
 
 ## Project Structure
 
-```
+```text
 server/
 ├── drizzle/                 # Migration files (.sql)
 ├── src/
